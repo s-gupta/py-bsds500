@@ -153,7 +153,9 @@ def compute_rec_prec_f1(count_r, sum_r, count_p, sum_p):
 
 
 SampleResult = namedtuple('SampleResult', ['sample_name', 'threshold',
-                                           'recall', 'precision', 'f1'])
+                                           'recall', 'precision', 'f1',
+                                           'thresholds', 'count_r', 'sum_r',
+                                           'count_p', 'sum_p'])
 ThresholdResult = namedtuple('ThresholdResult', ['threshold', 'recall',
                                                  'precision', 'f1'])
 OverallResult = namedtuple('OverallResult', ['threshold', 'recall',
@@ -245,7 +247,6 @@ def pr_evaluation(thresholds, sample_names, load_gt_boundaries, load_pred,
         count_r, sum_r, count_p, sum_p, used_thresholds = \
             evaluate_boundaries(pred, gt_b, thresholds=thresholds,
                                 apply_thinning=True)
-
         count_r_overall += count_r
         sum_r_overall += sum_r
         count_p_overall += count_p
@@ -265,7 +266,12 @@ def pr_evaluation(thresholds, sample_names, load_gt_boundaries, load_pred,
         sample_results.append(SampleResult(sample_name,
                                            used_thresholds[best_ndx],
                                            rec[best_ndx], prec[best_ndx],
-                                           f1[best_ndx]))
+                                           f1[best_ndx],
+                                           used_thresholds,
+                                           count_r.astype(np.int), 
+                                           sum_r.astype(np.int),
+                                           count_p.astype(np.int), 
+                                           sum_p.astype(np.int)))
 
     # Computer overall precision, recall and F1
     rec_overall, prec_overall, f1_overall = compute_rec_prec_f1(
