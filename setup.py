@@ -22,6 +22,7 @@ extensions = [
     Extension(
         'bsds.correspond_pixels',
         [os.path.join('bsds', 'correspond_pixels.pyx')],
+        extra_compile_args=["-Wno-format-security"],
     ),
 ]
 
