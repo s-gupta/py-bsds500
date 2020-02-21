@@ -6,8 +6,7 @@ results. Compare them with the results from the BSDS dataset to verify
 that this Python port works properly.
 """
 
-import os, argparse
-
+import os, argparse, numpy as np
 import tqdm
 from bsds.bsds_dataset import BSDSDataset
 from bsds import evaluate_boundaries
@@ -15,7 +14,7 @@ from skimage.util import img_as_float
 from skimage.io import imread
 
 SAMPLE_NAMES = ['2018', '3063', '5096', '6046', '8068']
-N_THRESHOLDS = 5
+N_THRESHOLDS = 99
 
 parser = argparse.ArgumentParser(description='Verify the BSDS-500 boundary '
                                              'evaluation suite')
@@ -42,6 +41,11 @@ sample_results, threshold_results, overall_result = \
     evaluate_boundaries.pr_evaluation(N_THRESHOLDS, SAMPLE_NAMES,
                                       load_gt_boundaries, load_pred,
                                       progress=tqdm.tqdm)
+for i, (sr, sn) in enumerate(zip(sample_results, SAMPLE_NAMES)):
+  dt = np.loadtxt('bench/data/png-eval-{:d}/{:s}_ev1.txt'.format(N_THRESHOLDS, sn))
+  pt = np.array([sr.thresholds, sr.count_r, sr.sum_r, sr.count_p, sr.sum_p]).T
+  print(np.allclose(dt, pt, rtol=1e-2, atol=1e-4))
+  # np.allclose(dt, pt, rtol=1e-4, atol=1e-4)
 
 print('Per image:')
 for sample_index, res in enumerate(sample_results):
