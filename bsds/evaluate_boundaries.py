@@ -144,83 +144,21 @@ def evaluate_boundaries_fast2(predicted_boundaries, gt_boundaries,
 
     return count_r, sum_r, count_p, sum_p, thresholds
 
-
-def evaluate_boundaries_fast(predicted_boundaries, gt_boundaries,
-                             thresholds=99, max_dist=0.0075,
-                             apply_thinning=True, progress=None):
-  import pdb; pdb.set_trace()
-  # zero all counts
-  cntR = zeros(size(thresh));
-  sumR = zeros(size(thresh));
-  cntP = zeros(size(thresh));
-  sumP = zeros(size(thresh));
-
-  for t = 1:nthresh,
-      bmap = (pb>=thresh(t));
-      
-      if t==1,
-          bmap_old = bmap;
-          same_bmp = false;
-      else
-          if isequal(bmap, bmap_old),
-              same_bmp = true;
-          else
-              same_bmp = false;
-              bmap_old = bmap;
-          end
-      end
-      
-      if ~same_bmp
-          % thin the thresholded pb to make sure boundaries are standard thickness
-          if thinpb,
-              bmap = double(bwmorph(bmap, 'thin', inf));    % OJO
-          end
-                 
-          # curves: compare with all GT
-          [match1, match2] = correspondCurves(bmap,human,radius);
-          % calcular recall
-          cntR(t) = sum(match2(:));
-          sumR(t) = sum(human(:));
-          
-          # calcular precision
-          cntP(t) =  sum(match1(:));
-          sumP(t) =  sum(bmap(:));
-      else
-          cntR(t) = cntR(t-1);
-          sumR(t) = sumR(t-1);
-          
-          % calcular precision
-          cntP(t) =  cntP(t-1);
-          sumP(t) =  sumP(t-1);
-      end
-      
-  end
-
-  % output
-  fid = fopen(prFile,'w');
-  if fid==-1,
-      error('Could not open file %s for writing.', prFile);
-  end
-    
-  # fprintf(fid,'%10g %10g %10g %10g %10g\n',[thresh cntR sumR cntP sumP]');
-  # fclose(fid);
-  return count_r, sum_r, count_p, sum_p
-
 def correspond_curves(bmap1, bmap2, radius):
-  str = strel(fspecial('disk',radius));
+  strel = skimage.morphology.disk(radius)
   
   # binarios
-  BW1 = logical(bmap1);
-  BW2 = (bmap2 >0);
+  BW1 = logical(bmap1)
+  BW2 = bmap2 > 0
 
   # dilatar humano y pb para compararlos
   # version continua : con Fast Marching
-  BW1d  = imdilate(BW1, str);
-  BW2d  = imdilate(BW2, str);
+  BW1d  = scipy.ndimage.morphology.binary_dilation(BW1, str)
+  BW2d  = scipy.ndimage.morphology.binary_dilation(BW2, str)
 
-  match1 = double( BW1 & BW2d );
+  match1 = np.logical_and(BW1, BW2d)
   # ojo : ya no es binario
-  match2 = bmap2.*( BW1d & BW2 );
+  match2 = bmap2 * np.logical_and(BW1d, BW2)
   return match1, match2
 
 def evaluate_boundaries(predicted_boundaries, gt_boundaries,
@@ -333,8 +271,8 @@ OverallResult = namedtuple('OverallResult', ['threshold', 'recall',
                                              'best_recall', 'best_precision',
                                              'best_f1', 'area_pr'])
 
-def pr_evaluation(thresholds, sample_names, load_gt_boundaries, load_pred,
-                  progress=None):
+def pr_evaluation(thresholds, sample_names, load_gt_boundaries, load_pred, 
+                  fast=False, progress=None):
     """
     Perform an evaluation of predictions against ground truths for an image
     set over a given set of thresholds.
@@ -348,6 +286,7 @@ def pr_evaluation(thresholds, sample_names, load_gt_boundaries, load_pred,
     :param load_pred: a callable that loads the prediction for a
         named sample; of the form `load_gt_boundaries(sample_name) -> gt`
         where `gt` is a 2D NumPy array
+    :param fast: default=False, which boundary evaluation function to use
     :param progress: default=None a callable -- such as `tqdm` -- that
         accepts an iterator over the sample names in order to track progress
     :return: `(sample_results, threshold_results, overall_result)`
@@ -414,9 +353,14 @@ def pr_evaluation(thresholds, sample_names, load_gt_boundaries, load_pred,
         gt_b = load_gt_boundaries(sample_name)
 
         # Evaluate predictions
-        count_r, sum_r, count_p, sum_p, used_thresholds = \
-            evaluate_boundaries(pred, gt_b, thresholds=thresholds,
-                                apply_thinning=True)
+        if fast: 
+          count_r, sum_r, count_p, sum_p, used_thresholds = \
+              evaluate_boundaries_fast(pred, gt_b, thresholds=thresholds,
+                                       apply_thinning=True)
+        else:
+          count_r, sum_r, count_p, sum_p, used_thresholds = \
+              evaluate_boundaries(pred, gt_b, thresholds=thresholds,
+                                  apply_thinning=True)
         count_r_overall += count_r
         sum_r_overall += sum_r
         count_p_overall += count_p
