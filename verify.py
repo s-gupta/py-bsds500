@@ -64,3 +64,6 @@ print('{:<10.6f} {:<10.6f} {:<10.6f} {:<10.6f} {:<10.6f} {:<10.6f} {:<10.6f}'
     overall_result.best_precision, overall_result.best_f1,
     overall_result.area_pr)
 )
+
+## Comparing results to matlab version:
+# edgesEvalDir('resDir', '/home/saurabhg/edges/py-bsds500/bench/data/png', 'gtDir', '~/edges/py-bsds500/bench/data/groundTruth', 'pDistr', {{'type','local'}}, 'thrs', 5)
