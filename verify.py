@@ -20,6 +20,8 @@ parser = argparse.ArgumentParser(description='Verify the BSDS-500 boundary '
                                              'evaluation suite')
 parser.add_argument('bsds_path', type=str,
                     help='the root path of the BSDS-500 dataset')
+parser.add_argument('fast', type=bool,
+                    help='which function to bechmark')
 
 args = parser.parse_args()
 
@@ -40,9 +42,12 @@ def load_pred(sample_name):
 sample_results, threshold_results, overall_result = \
     evaluate_boundaries.pr_evaluation(N_THRESHOLDS, SAMPLE_NAMES,
                                       load_gt_boundaries, load_pred,
+                                      fast=args.fast,
                                       progress=tqdm.tqdm)
+
 for i, (sr, sn) in enumerate(zip(sample_results, SAMPLE_NAMES)):
-  dt = np.loadtxt('bench/data/png-eval-{:d}/{:s}_ev1.txt'.format(N_THRESHOLDS, sn))
+  fast_str = 'fast' if args.fast else ''
+  dt = np.loadtxt('bench/data/png-{:s}eval-{:d}/{:s}_ev1.txt'.format(fast_str, N_THRESHOLDS, sn))
   pt = np.array([sr.thresholds, sr.count_r, sr.sum_r, sr.count_p, sr.sum_p]).T
   print(np.allclose(dt, pt, rtol=1e-2, atol=1e-4))
   # np.allclose(dt, pt, rtol=1e-4, atol=1e-4)
