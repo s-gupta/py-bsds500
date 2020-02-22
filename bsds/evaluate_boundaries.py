@@ -141,7 +141,8 @@ def evaluate_boundaries_fast(predicted_boundaries, gt_boundaries,
     return count_r, sum_r, count_p, sum_p, thresholds
 
 def correspond_curves(bmap1, bmap2, radius):
-  strel = disk(radius)
+  # strel = disk(radius)
+  strel = disk(radius+1)[1:-1,1:-1]
   
   # binarios
   BW1 = bmap1
