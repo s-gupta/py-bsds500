@@ -66,10 +66,8 @@ def evaluate_boundaries_fast(predicted_boundaries, gt_boundaries,
     by the `load_boundaries` or `boundaries` methods
     :param thresholds: either an integer specifying the number of thresholds
     to use or a 1D array specifying the thresholds
-    :param max_dist: (default=0.0075) maximum distance parameter
-    used for determining pixel matches. This value is multiplied by the
-    length of the diagonal of the image to get the threshold used
-    for matching pixels.
+    :param radius: (default=3) size of disk for dilation element that is used
+    to correspond predicted boundary to ground truth boundaries.
     :param apply_thinning: (default=True) if True, apply morphologial
     thinning to the predicted boundaries before evaluation
     :param progress: a function that can be used to monitor progress;
@@ -350,7 +348,7 @@ def pr_evaluation(thresholds, sample_names, load_gt_boundaries, load_pred,
         gt_b = load_gt_boundaries(sample_name)
 
         # Evaluate predictions
-        if fast: 
+        if fast:
           count_r, sum_r, count_p, sum_p, used_thresholds = \
               evaluate_boundaries_fast(pred, gt_b, thresholds=thresholds,
                                        apply_thinning=True)
