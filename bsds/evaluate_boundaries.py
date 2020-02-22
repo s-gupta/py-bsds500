@@ -52,6 +52,176 @@ def evaluate_boundaries_bin(predicted_boundaries_bin, gt_boundaries,
 
     return count_r, sum_r, count_p, sum_p
 
+def evaluate_boundaries_fast2(predicted_boundaries, gt_boundaries,
+                        thresholds=99, max_dist=0.0075, apply_thinning=True,
+                        progress=None):
+    """
+    Evaluate the accuracy of a predicted boundary and a range of thresholds
+
+    :param predicted_boundaries: the predicted boundaries as a (H,W)
+    floating point array where each pixel represents the strength of the
+    predicted boundary
+    :param gt_boundaries: a list of ground truth boundaries, as returned
+    by the `load_boundaries` or `boundaries` methods
+    :param thresholds: either an integer specifying the number of thresholds
+    to use or a 1D array specifying the thresholds
+    :param max_dist: (default=0.0075) maximum distance parameter
+    used for determining pixel matches. This value is multiplied by the
+    length of the diagonal of the image to get the threshold used
+    for matching pixels.
+    :param apply_thinning: (default=True) if True, apply morphologial
+    thinning to the predicted boundaries before evaluation
+    :param progress: a function that can be used to monitor progress;
+    use `tqdm.tqdm` or `tdqm.tqdm_notebook` from the `tqdm` package
+    to generate a progress bar.
+    :return: tuple `(count_r, sum_r, count_p, sum_p, thresholds)` where each
+    of the first four entries are arrays that can be used to compute
+    recall and precision at each threshold with:
+    ```
+    recall = count_r / (sum_r + (sum_r == 0))
+    precision = count_p / (sum_p + (sum_p == 0))
+    ```
+    The thresholds are also returned.
+    """
+    if progress is None:
+        progress = lambda x, *args, **kwargs: x
+
+    # Handle thresholds
+    if isinstance(thresholds, int):
+        thresholds = np.linspace(1.0 / (thresholds + 1),
+                                 1.0 - 1.0 / (thresholds + 1), thresholds)
+    elif isinstance(thresholds, np.ndarray):
+        if thresholds.ndim != 1:
+            raise ValueError('thresholds array should have 1 dimension, '
+                             'not {}'.format(thresholds.ndim))
+        pass
+    else:
+        raise ValueError('thresholds should be an int or a NumPy array, not '
+                         'a {}'.format(type(thresholds)))
+
+    sum_p = np.zeros(thresholds.shape)
+    count_p = np.zeros(thresholds.shape)
+    sum_r = np.zeros(thresholds.shape)
+    count_r = np.zeros(thresholds.shape)
+    
+    import pdb; pdb.set_trace()
+    human = zeros(size(groundTruth{1}.Boundaries));
+    for i = range(5): #1:numel(groundTruth),
+        human = human + groundTruth{i}.Boundaries;
+
+
+    for i_t, thresh in enumerate(progress(list(thresholds))):
+        predicted_boundaries_bin = predicted_boundaries >= thresh
+
+        if i_t == 0:
+            bmap_old = predicted_boundaries_bin
+            same_bmap = False
+        else:
+            import pdb; pdb.set_trace()
+            if bmap_old == predicted_boundaries_bin:
+                same_bmap = True
+            else:
+                bmap_old = predicted_boundaries_bin
+                same_bmap = False
+        
+        acc_prec = np.zeros(predicted_boundaries_bin.shape, dtype=bool)
+        
+        if not same_bmap:
+            if apply_thinning:
+                predicted_boundaries_bin = thin.binary_thin(
+                    predicted_boundaries_bin)
+            
+            match1, match2 = correspond_curves(predicted_boundaries_bin, human, radius)
+            count_r[i_t] = match2.sum()
+            sum_r[i_t] = gt.sum()
+            count_p[i_t] = match1.sum()
+            sum_p[i_t] = predicted_boundaries_bin.sum()
+        else:
+            count_r[i_t] = count_r[i_t-1]
+            sum_r[i_t] = sum_r[i_t-1]
+            count_p[i_t] = count_p[i_t-1]
+            sum_p[i_t] = sum_p[i_t-1]
+
+    return count_r, sum_r, count_p, sum_p, thresholds
+
+
+def evaluate_boundaries_fast(predicted_boundaries, gt_boundaries,
+                             thresholds=99, max_dist=0.0075,
+                             apply_thinning=True, progress=None):
+  import pdb; pdb.set_trace()
+  # zero all counts
+  cntR = zeros(size(thresh));
+  sumR = zeros(size(thresh));
+  cntP = zeros(size(thresh));
+  sumP = zeros(size(thresh));
+
+  for t = 1:nthresh,
+      bmap = (pb>=thresh(t));
+      
+      if t==1,
+          bmap_old = bmap;
+          same_bmp = false;
+      else
+          if isequal(bmap, bmap_old),
+              same_bmp = true;
+          else
+              same_bmp = false;
+              bmap_old = bmap;
+          end
+      end
+      
+      if ~same_bmp
+          % thin the thresholded pb to make sure boundaries are standard thickness
+          if thinpb,
+              bmap = double(bwmorph(bmap, 'thin', inf));    % OJO
+          end
+                 
+          # curves: compare with all GT
+          [match1, match2] = correspondCurves(bmap,human,radius);
+          % calcular recall
+          cntR(t) = sum(match2(:));
+          sumR(t) = sum(human(:));
+          
+          # calcular precision
+          cntP(t) =  sum(match1(:));
+          sumP(t) =  sum(bmap(:));
+      else
+          cntR(t) = cntR(t-1);
+          sumR(t) = sumR(t-1);
+          
+          % calcular precision
+          cntP(t) =  cntP(t-1);
+          sumP(t) =  sumP(t-1);
+      end
+      
+  end
+
+  % output
+  fid = fopen(prFile,'w');
+  if fid==-1,
+      error('Could not open file %s for writing.', prFile);
+  end
+    
+  # fprintf(fid,'%10g %10g %10g %10g %10g\n',[thresh cntR sumR cntP sumP]');
+  # fclose(fid);
+  return count_r, sum_r, count_p, sum_p
+
+def correspond_curves(bmap1, bmap2, radius):
+  str = strel(fspecial('disk',radius));
+  
+  # binarios
+  BW1 = logical(bmap1);
+  BW2 = (bmap2 >0);
+
+  # dilatar humano y pb para compararlos
+  # version continua : con Fast Marching
+  BW1d  = imdilate(BW1, str);
+  BW2d  = imdilate(BW2, str);
+
+  match1 = double( BW1 & BW2d );
+  # ojo : ya no es binario
+  match2 = bmap2.*( BW1d & BW2 );
+  return match1, match2
 
 def evaluate_boundaries(predicted_boundaries, gt_boundaries,
                         thresholds=99, max_dist=0.0075, apply_thinning=True,
