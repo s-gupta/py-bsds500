@@ -1,5 +1,6 @@
 from collections import namedtuple
 import numpy as np
+from skimage.morphology import disk, binary_dilation
 from . import thin, correspond_pixels
 
 
@@ -52,8 +53,8 @@ def evaluate_boundaries_bin(predicted_boundaries_bin, gt_boundaries,
 
     return count_r, sum_r, count_p, sum_p
 
-def evaluate_boundaries_fast2(predicted_boundaries, gt_boundaries,
-                        thresholds=99, max_dist=0.0075, apply_thinning=True,
+def evaluate_boundaries_fast(predicted_boundaries, gt_boundaries,
+                        thresholds=99, radius=3, apply_thinning=True,
                         progress=None):
     """
     Evaluate the accuracy of a predicted boundary and a range of thresholds
@@ -104,12 +105,8 @@ def evaluate_boundaries_fast2(predicted_boundaries, gt_boundaries,
     sum_r = np.zeros(thresholds.shape)
     count_r = np.zeros(thresholds.shape)
     
-    import pdb; pdb.set_trace()
-    human = zeros(size(groundTruth{1}.Boundaries));
-    for i = range(5): #1:numel(groundTruth),
-        human = human + groundTruth{i}.Boundaries;
-
-
+    human = np.array(gt_boundaries).sum(0)
+    
     for i_t, thresh in enumerate(progress(list(thresholds))):
         predicted_boundaries_bin = predicted_boundaries >= thresh
 
@@ -117,8 +114,7 @@ def evaluate_boundaries_fast2(predicted_boundaries, gt_boundaries,
             bmap_old = predicted_boundaries_bin
             same_bmap = False
         else:
-            import pdb; pdb.set_trace()
-            if bmap_old == predicted_boundaries_bin:
+            if np.all(predicted_boundaries_bin == bmap_old):
                 same_bmap = True
             else:
                 bmap_old = predicted_boundaries_bin
@@ -133,7 +129,7 @@ def evaluate_boundaries_fast2(predicted_boundaries, gt_boundaries,
             
             match1, match2 = correspond_curves(predicted_boundaries_bin, human, radius)
             count_r[i_t] = match2.sum()
-            sum_r[i_t] = gt.sum()
+            sum_r[i_t] = human.sum()
             count_p[i_t] = match1.sum()
             sum_p[i_t] = predicted_boundaries_bin.sum()
         else:
@@ -145,16 +141,16 @@ def evaluate_boundaries_fast2(predicted_boundaries, gt_boundaries,
     return count_r, sum_r, count_p, sum_p, thresholds
 
 def correspond_curves(bmap1, bmap2, radius):
-  strel = skimage.morphology.disk(radius)
+  strel = disk(radius)
   
   # binarios
-  BW1 = logical(bmap1)
+  BW1 = bmap1
   BW2 = bmap2 > 0
 
   # dilatar humano y pb para compararlos
   # version continua : con Fast Marching
-  BW1d  = scipy.ndimage.morphology.binary_dilation(BW1, str)
-  BW2d  = scipy.ndimage.morphology.binary_dilation(BW2, str)
+  BW1d  = binary_dilation(BW1, strel)
+  BW2d  = binary_dilation(BW2, strel)
 
   match1 = np.logical_and(BW1, BW2d)
   # ojo : ya no es binario

@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(description='Verify the BSDS-500 boundary '
                                              'evaluation suite')
 parser.add_argument('bsds_path', type=str,
                     help='the root path of the BSDS-500 dataset')
-parser.add_argument('fast', type=bool,
+parser.add_argument('fast', type=bool, 
                     help='which function to bechmark')
 
 args = parser.parse_args()
