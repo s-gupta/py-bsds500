@@ -1,7 +1,8 @@
 from collections import namedtuple
 import numpy as np
 from skimage.morphology import disk, binary_dilation
-from . import thin, correspond_pixels
+from . import thin
+# , correspond_pixels
 
 
 def evaluate_boundaries_bin(predicted_boundaries_bin, gt_boundaries,
